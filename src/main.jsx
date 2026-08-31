@@ -11,13 +11,36 @@ import {
   MessageCircle,
   Play,
   Sparkles,
-  UsersRound,
   X,
 } from 'lucide-react'
+import { supabase } from './lib/supabase'
 import './styles.css'
 import './glass-overrides.css'
 
 const feedTabs = ['Pour toi', 'Tendance', 'Récent']
+
+const legalContent = {
+  privacy: {
+    title: 'Politique de confidentialité',
+    intro: 'Ton identité publique reste sous ton contrôle. VEIL ne vend pas tes données et ne partage pas volontairement ton identité avec les autres utilisateurs.',
+    sections: [
+      ['Anonymat', 'Les autres utilisateurs voient ton pseudonyme, ton numéro VEIL et les informations que tu choisis d’afficher. Anonyme pour les autres ne signifie pas invisible pour VEIL : certaines données techniques peuvent être conservées pour sécuriser le service, prévenir les fraudes et traiter les signalements.'],
+      ['Données collectées', 'VEIL peut traiter ton nom d’inscription, ton e-mail, les informations d’authentification, ton identifiant VEIL, tes contenus, ainsi que des données techniques nécessaires au fonctionnement et à la sécurité du service.'],
+      ['Ce que nous ne faisons pas', 'Nous ne vendons pas tes données personnelles, ton nom, ton adresse e-mail ou ton identité aux autres utilisateurs. Nous ne vendons pas le contenu de tes conversations à des annonceurs.'],
+      ['Tes droits', 'Tu peux demander l’accès, la rectification, la mise à jour ou la suppression de tes données dans les conditions prévues par la loi. Contact : privacy@veil.app.'],
+    ],
+  },
+  terms: {
+    title: 'Conditions d’utilisation',
+    intro: 'VEIL est un espace social anonyme. En créant un compte, tu acceptes de protéger les autres utilisateurs et de respecter les règles de la plateforme.',
+    sections: [
+      ['Compte et anonymat', 'Tu dois fournir des informations exactes pour sécuriser ton compte. Ton identité réelle n’est pas affichée automatiquement, mais l’anonymat ne constitue pas une garantie d’impunité en cas d’abus, de fraude ou d’obligation légale.'],
+      ['Contenus et comportements', 'Le harcèlement, les menaces, le doxxing, le chantage, l’usurpation d’identité, les contenus illégaux, le spam et la manipulation des Coins sont interdits.'],
+      ['Coins et fonctionnalités numériques', 'Les Coins sont des unités virtuelles utilisables dans VEIL. Ils ne constituent pas de l’argent, ne sont pas retirables et les transferts confirmés peuvent être définitifs.'],
+      ['Modération', 'VEIL peut supprimer un contenu, limiter une fonctionnalité, suspendre ou supprimer un compte lorsque cela est nécessaire pour la sécurité du service.'],
+    ],
+  },
+}
 
 function Logo({ compact = false }) {
   return (
@@ -28,12 +51,71 @@ function Logo({ compact = false }) {
   )
 }
 
+function AuthModal({ mode, onClose, onModeChange, onLegal }) {
+  const [form, setForm] = useState({ email: '', password: '', displayName: '', accepted: false })
+  const [status, setStatus] = useState({ type: '', message: '' })
+  const [loading, setLoading] = useState(false)
+
+  const isSignup = mode === 'signup'
+  const updateField = (event) => setForm({ ...form, [event.target.name]: event.target.type === 'checkbox' ? event.target.checked : event.target.value })
+
+  const submit = async (event) => {
+    event.preventDefault()
+    if (isSignup && !form.accepted) {
+      setStatus({ type: 'error', message: 'Tu dois accepter les conditions et la politique de confidentialité.' })
+      return
+    }
+    if (!supabase) {
+      setStatus({ type: 'error', message: 'Supabase n’est pas encore configuré. Ajoute les variables VITE_SUPABASE dans ton environnement.' })
+      return
+    }
+    setLoading(true)
+    setStatus({ type: '', message: '' })
+    const result = isSignup
+      ? await supabase.auth.signUp({ email: form.email, password: form.password, options: { data: { display_name: form.displayName }, emailRedirectTo: `${window.location.origin}/` } })
+      : await supabase.auth.signInWithPassword({ email: form.email, password: form.password })
+    setLoading(false)
+    if (result.error) {
+      setStatus({ type: 'error', message: result.error.message })
+      return
+    }
+    setStatus({ type: 'success', message: isSignup ? 'Compte créé. Vérifie ton e-mail pour confirmer ton accès.' : 'Connexion réussie. Bienvenue derrière le voile.' })
+  }
+
+  return <div className="auth-backdrop" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div className="auth-modal glass-card">
+      <button className="auth-close" onClick={onClose} aria-label="Fermer"><X size={20} /></button>
+      <div className="auth-kicker"><span className="eyebrow-dot" /> VEIL · espace privé</div>
+      <div className="auth-symbol"><img src="/logo-veil.png" alt="" /></div>
+      <h2 id="auth-title">{isSignup ? 'Entre derrière le voile.' : 'Ravi de te revoir.'}</h2>
+      <p className="auth-intro">{isSignup ? 'Crée ton espace social. Ton identité publique reste anonyme.' : 'Retrouve tes conversations, tes communautés et ta voix.'}</p>
+      <div className="privacy-banner"><LockKeyhole size={16} /><span><strong>Ton compte reste anonyme.</strong><small>Aucune donnée personnelle ne sera partagée avec les autres utilisateurs.</small></span></div>
+      <form className="auth-form" onSubmit={submit}>
+        {isSignup && <label>Pseudonyme<input name="displayName" value={form.displayName} onChange={updateField} placeholder="Comment veux-tu être appelé ?" required /></label>}
+        <label>Adresse e-mail<input type="email" name="email" value={form.email} onChange={updateField} placeholder="toi@exemple.com" required /></label>
+        <label>Mot de passe<input type="password" name="password" value={form.password} onChange={updateField} placeholder="6 caractères minimum" minLength="6" required /></label>
+        {isSignup && <label className="check-label"><input type="checkbox" name="accepted" checked={form.accepted} onChange={updateField} /><span>J’accepte les <button type="button" onClick={() => onLegal('terms')}>conditions d’utilisation</button> et la <button type="button" onClick={() => onLegal('privacy')}>politique de confidentialité</button>.</span></label>}
+        {status.message && <div className={`auth-status ${status.type}`}>{status.message}</div>}
+        <button className="button button-primary auth-submit" disabled={loading}>{loading ? 'Un instant…' : isSignup ? 'Créer mon compte' : 'Se connecter'} <ArrowUpRight size={17} /></button>
+      </form>
+      <div className="auth-switch">{isSignup ? 'Tu as déjà un compte ?' : 'Pas encore de compte ?'} <button onClick={() => onModeChange(isSignup ? 'login' : 'signup')}>{isSignup ? 'Se connecter' : 'Créer mon compte'}</button></div>
+    </div>
+  </div>
+}
+
+function LegalModal({ kind, onClose }) {
+  const content = legalContent[kind]
+  return <div className="auth-backdrop legal-backdrop" role="dialog" aria-modal="true" aria-labelledby="legal-title"><div className="legal-modal glass-card"><button className="auth-close" onClick={onClose} aria-label="Fermer"><X size={20} /></button><div className="auth-kicker"><span className="eyebrow-dot" /> VEIL · transparence</div><h2 id="legal-title">{content.title}</h2><p className="legal-intro">{content.intro}</p><div className="legal-scroll">{content.sections.map(([title, text]) => <section key={title}><h3>{title}</h3><p>{text}</p></section>)}</div><div className="legal-date">Dernière mise à jour : 1 septembre 2026</div></div></div>
+}
+
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('Pour toi')
   const [liked, setLiked] = useState(false)
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [authMode, setAuthMode] = useState(null)
+  const [legalMode, setLegalMode] = useState(null)
 
   useEffect(() => {
     const revealObserver = new IntersectionObserver((entries) => {
@@ -68,7 +150,7 @@ function App() {
           <a href="#communities" onClick={closeMenu}>Communautés</a>
           <a href="#waitlist" onClick={closeMenu}>Accès anticipé</a>
         </nav>
-        <a className="header-cta" href="#waitlist">Rejoindre VEIL <ArrowUpRight size={16} /></a>
+        <button className="header-cta header-auth-button" onClick={() => setAuthMode('login')}>Se connecter <ArrowUpRight size={16} /></button>
         <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Ouvrir le menu">
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -80,7 +162,7 @@ function App() {
           <h1>Dis ce que tu penses.<br /><em>Pas qui tu es.</em></h1>
           <p className="hero-text">Un espace social anonyme pour laisser ta personnalité parler avant ton identité. Publie, échange et crée des liens qui commencent par le vrai.</p>
           <div className="hero-actions">
-            <a className="button button-primary" href="#waitlist">Entrer dans VEIL <ArrowUpRight size={17} /></a>
+            <button className="button button-primary" onClick={() => setAuthMode('signup')}>Entrer dans VEIL <ArrowUpRight size={17} /></button>
             <a className="text-link" href="#experience"><span className="play-icon"><Play size={11} fill="currentColor" /></span> Voir comment ça marche</a>
           </div>
           <div className="hero-proof"><div className="avatar-stack"><span className="avatar avatar-a">M</span><span className="avatar avatar-b">S</span><span className="avatar avatar-c">A</span><span className="avatar avatar-d">+</span></div><span>Des voix différentes. Une même envie de vrai.</span></div>
@@ -128,9 +210,11 @@ function App() {
 
       <section className="communities shell" id="communities" data-reveal><div className="section-label">03 — Les communautés</div><div className="community-heading"><h2>Ta place est<br /><span>quelque part ici.</span></h2><p>Des espaces vivants pour tes humeurs, tes obsessions et tout ce que tu gardes habituellement pour toi.</p></div><div className="community-cards"><div className="community-card card-confessions"><img className="community-image" src="/community-confessions.png" alt="Ambiance de la communauté Confessions" /><div className="community-card-copy"><b>Confessions</b><small>12.4k voix</small></div><span className="card-arrow">↗</span></div><div className="community-card card-debats"><img className="community-image" src="/community-debats.png" alt="Ambiance de la communauté Débats" /><div className="community-card-copy"><b>Débats</b><small>8.8k voix</small></div><span className="card-arrow">↗</span></div><div className="community-card card-pensees"><img className="community-image" src="/community-pensees.png" alt="Ambiance de la communauté Pensées" /><div className="community-card-copy"><b>Pensées</b><small>16.2k voix</small></div><span className="card-arrow">↗</span></div><div className="community-card card-humour"><img className="community-image" src="/community-humour.png" alt="Ambiance de la communauté Humour" /><div className="community-card-copy"><b>Humour</b><small>21.1k voix</small></div><span className="card-arrow">↗</span></div></div></section>
 
-      <section className="waitlist shell" id="waitlist" data-reveal><div className="waitlist-orb" /><div className="waitlist-content"><div className="section-label">04 — Rejoins VEIL</div><h2>Le voile se lève<br /><em>avec toi.</em></h2><p>Entre dans un espace où ta voix peut prendre toute sa place. Rejoins la communauté VEIL dès maintenant.</p>{submitted ? <div className="success-message">✦ Ton accès est enregistré. Bienvenue derrière le voile.</div> : <form onSubmit={submitWaitlist}><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ton@email.com" aria-label="Ton adresse email" required /><button className="button button-primary" type="submit">Rejoindre VEIL <ArrowUpRight size={17} /></button></form>}<small className="privacy-note">Une invitation simple, quand tu en as envie.</small></div><div className="waitlist-mark"><img src="/logo-veil.png" alt="" /><span>VEIL</span></div></section>
+      <section className="waitlist shell" id="waitlist" data-reveal><div className="waitlist-orb" /><div className="waitlist-content"><div className="section-label">04 — Rejoins VEIL</div><h2>Le voile se lève<br /><em>avec toi.</em></h2><p>Entre dans un espace où ta voix peut prendre toute sa place. Crée ton compte et garde le contrôle de ton identité.</p><button className="button button-primary" onClick={() => setAuthMode('signup')}>Créer mon compte <ArrowUpRight size={17} /></button><small className="privacy-note">Ton compte reste anonyme. Aucune donnée ne sera partagée avec les autres utilisateurs.</small></div><div className="waitlist-mark"><img src="/logo-veil.png" alt="" /><span>VEIL</span></div></section>
 
-      <footer className="site-footer shell"><Logo /><span>Dis ce que tu penses. Pas qui tu es.</span><div className="footer-links"><a href="#vision">La vision</a><a href="#experience">L'expérience</a><a href="#waitlist">Contact</a></div><span className="copyright">© 2025 VEIL</span></footer>
+      <footer className="site-footer shell"><Logo /><span>Dis ce que tu penses. Pas qui tu es.</span><div className="footer-links"><a href="#vision">La vision</a><a href="#experience">L'expérience</a><button onClick={() => setLegalMode('privacy')}>Confidentialité</button><button onClick={() => setLegalMode('terms')}>Conditions</button></div><span className="copyright">© 2025 VEIL</span></footer>
+      {authMode && <AuthModal mode={authMode} onClose={() => setAuthMode(null)} onModeChange={setAuthMode} onLegal={setLegalMode} />}
+      {legalMode && <LegalModal kind={legalMode} onClose={() => setLegalMode(null)} />}
     </main>
   )
 }
