@@ -15,6 +15,8 @@ import {
   Send,
   Sparkles,
   Search,
+  ImagePlus,
+  Video,
   UserRound,
   X,
 } from 'lucide-react'
@@ -49,6 +51,8 @@ export default function VeilHome({ onSignOut, session }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
+  const [mediaFile, setMediaFile] = useState(null)
+  const [mediaPreview, setMediaPreview] = useState('')
 
   const displayName = session?.user?.user_metadata?.display_name || 'toi'
   const visiblePosts = useMemo(() => activeTab === 'Pour toi' ? posts : posts.filter((post) => categories.find((item) => item.label === activeTab)?.id === post.category), [activeTab, posts])
@@ -62,9 +66,22 @@ export default function VeilHome({ onSignOut, session }) {
   const publish = (event) => {
     event.preventDefault()
     if (!composerText.trim()) return
-    setPosts([{ id: Date.now(), category: selectedCategory, time: 'à l’instant', text: composerText.trim(), reactions: 0, comments: 0, felt: 0, liked: false }, ...posts])
+    setPosts([{ id: Date.now(), category: selectedCategory, time: 'à l’instant', text: composerText.trim(), media: mediaPreview, mediaType: mediaFile?.type, reactions: 0, comments: 0, felt: 0, liked: false }, ...posts])
     setComposerText('')
+    setMediaFile(null)
+    setMediaPreview('')
     setToast('Ta pensée a été publiée anonymement.')
+  }
+
+  const selectMedia = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      setToast('Choisis une image ou une vidéo.')
+      return
+    }
+    setMediaFile(file)
+    setMediaPreview(URL.createObjectURL(file))
   }
 
   const toggleLike = (id) => setPosts(posts.map((post) => post.id === id ? { ...post, liked: !post.liked, reactions: post.reactions + (post.liked ? -1 : 1) } : post))
@@ -83,9 +100,9 @@ export default function VeilHome({ onSignOut, session }) {
 
       <main className="home-main">
         <div className="home-greeting"><div><span className="home-eyebrow">Mardi · ton espace anonyme</span><h1>Bonjour, <em>@{displayName}</em></h1></div><div className="coin-pill">◈ <strong>200</strong> Coins</div></div>
-        <section className="composer glass-panel"><div className="composer-head"><span className="composer-avatar">◌</span><span>Qu’est-ce que tu veux dire aujourd’hui ?</span></div><form onSubmit={publish}><textarea value={composerText} onChange={(event) => setComposerText(event.target.value)} placeholder="Écris quelque chose… personne ne saura que c’est toi." rows="3" /><div className="composer-footer"><div className="category-picker">{categories.map((category) => <button type="button" key={category.id} className={selectedCategory === category.id ? 'selected' : ''} onClick={() => setSelectedCategory(category.id)}><span>{category.icon}</span>{category.label}</button>)}</div><button className="publish-button" disabled={!composerText.trim()}>Publier anonymement <Send size={15} /></button></div></form></section>
+        <section className="composer glass-panel"><div className="composer-head"><span className="composer-avatar">◌</span><span>Qu’est-ce que tu veux dire aujourd’hui ?</span></div><form onSubmit={publish}><textarea value={composerText} onChange={(event) => setComposerText(event.target.value)} placeholder="Écris quelque chose… personne ne saura que c’est toi." rows="3" />{mediaPreview && <div className="media-preview"><button type="button" onClick={() => { setMediaFile(null); setMediaPreview('') }} aria-label="Retirer le média"><X size={15} /></button>{mediaFile?.type.startsWith('video/') ? <video src={mediaPreview} controls /> : <img src={mediaPreview} alt="Aperçu du média" />}</div>}<div className="composer-footer"><div className="composer-tools"><label className="media-button"><ImagePlus size={16} /><span>Photo</span><input type="file" accept="image/*" onChange={selectMedia} /></label><label className="media-button"><Video size={16} /><span>Vidéo</span><input type="file" accept="video/*" onChange={selectMedia} /></label><div className="category-picker">{categories.map((category) => <button type="button" key={category.id} className={selectedCategory === category.id ? 'selected' : ''} onClick={() => setSelectedCategory(category.id)}><span>{category.icon}</span>{category.label}</button>)}</div></div><button className="publish-button" disabled={!composerText.trim()}>Publier anonymement <Send size={15} /></button></div></form></section>
         <div className="feed-heading"><div className="feed-tabs-home">{['Pour toi', 'Confessions', 'Pensées', 'Débats', 'Humour'].map((tab) => <button key={tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}</div><button className="filter-button"><Sparkles size={15} /> Personnalisé</button></div>
-        <div className="feed-list">{visiblePosts.map((post) => <article className="home-post glass-panel" key={post.id}><div className="post-topline"><span className="post-avatar">◌</span><div><strong>Anonyme</strong><small>il y a {post.time} · {categories.find((item) => item.id === post.category)?.label}</small></div><button className="post-more" aria-label="Plus d’options"><MoreHorizontal size={18} /></button></div><p className="home-post-text">« {post.text} »</p><div className="post-footer"><button className={post.liked ? 'post-action liked' : 'post-action'} onClick={() => toggleLike(post.id)}><Heart size={17} fill={post.liked ? 'currentColor' : 'none'} /> {post.reactions}</button><button className="post-action"><MessageCircle size={17} /> {post.comments}</button><button className="post-action"><Send size={16} /> Partager</button><span className="felt-count"><Eye size={15} /> {post.felt} personnes ont ressenti la même chose</span></div></article>)}</div>
+        <div className="feed-list">{visiblePosts.map((post) => <article className="home-post glass-panel" key={post.id}><div className="post-topline"><span className="post-avatar">◌</span><div><strong>Anonyme</strong><small>il y a {post.time} · {categories.find((item) => item.id === post.category)?.label}</small></div><button className="post-more" aria-label="Plus d’options"><MoreHorizontal size={18} /></button></div><p className="home-post-text">« {post.text} »</p>{post.media && (post.mediaType?.startsWith('video/') ? <video className="post-media" src={post.media} controls /> : <img className="post-media" src={post.media} alt="Média publié anonymement" />)}<div className="post-footer"><button className={post.liked ? 'post-action liked' : 'post-action'} onClick={() => toggleLike(post.id)}><Heart size={17} fill={post.liked ? 'currentColor' : 'none'} /> {post.reactions}</button><button className="post-action"><MessageCircle size={17} /> {post.comments}</button><button className="post-action"><Send size={16} /> Partager</button><span className="felt-count"><Eye size={15} /> {post.felt} personnes ont ressenti la même chose</span></div></article>)}</div>
       </main>
 
       <aside className="home-rightbar"><section className="trends-card glass-panel"><div className="right-title"><span>🔥</span><h2>En ce moment sur VEIL</h2></div><div className="trend-list">{trends.map((trend, index) => <button key={trend}><span>0{index + 1}</span><strong>{trend}</strong><ChevronRight size={15} /></button>)}</div><button className="see-more">Voir toutes les tendances <ArrowIcon /></button></section><section className="veil-pick glass-panel"><div className="pick-label"><LockKeyhole size={15} /> Derrière le voile</div>{revealed ? <p>« J’ai toujours voulu partir. Je ne sais juste pas de quoi. »</p> : <><div className="blurred-thought">« J’ai toujours voulu partir. Je ne sais juste pas de quoi. »</div><button onClick={() => setRevealed(true)}>Voir une autre confession <ChevronRight size={15} /></button></>}<span className="pick-footer">Une pensée choisie au hasard</span></section><section className="creator-card"><div className="creator-icon"><Gift size={18} /></div><div><strong>Offre une présence</strong><small>Envoie un cadeau à une voix qui t’a touché.</small></div></section></aside>
