@@ -90,3 +90,17 @@ html { overflow-x: hidden; }
   .auth-modal, .legal-modal { width: 100%; max-height: none; margin: 8px 0; padding: 26px 20px; border-radius: 18px; }
   .auth-modal h2, .legal-modal h2 { font-size: 32px; }
 }
+@media (max-width: 600px) {
+  html, body, #root, main { width: 100%; max-width: 100%; overflow-x: hidden; }
+  .site-header { position: fixed !important; top: 0 !important; left: 10px !important; right: 10px !important; width: auto !important; max-width: none !important; min-height: 62px !important; margin: 0 !important; padding: 0 10px !important; transform: none !important; }
+  .site-header .nav { position: absolute !important; top: 68px !important; right: 0 !important; left: auto !important; width: min(250px, calc(100vw - 30px)) !important; max-width: calc(100vw - 30px) !important; }
+  .site-header .header-cta { min-width: 0; margin-left: auto; overflow: hidden; }
+  .site-header .header-cta { font-size: 0; }
+  .site-header .header-cta::before { content: 'Connexion'; font-size: 10px; }
+  .site-header .menu-button { flex: 0 0 36px; }
+  .hero, .manifesto, .experience, .communities, .waitlist, .site-footer { max-width: calc(100% - 28px); }
+  .hero-visual { max-width: 100%; overflow: hidden; }
+  .ticker { width: 100%; max-width: 100%; overflow: hidden; }
+  .ambient { position: fixed; max-width: 100vw; }
+  .ticker-inner { min-width: 0 !important; width: max-content; }
+}
