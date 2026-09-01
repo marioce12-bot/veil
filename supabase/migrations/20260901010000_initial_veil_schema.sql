@@ -69,6 +69,14 @@ create table if not exists public.coin_wallets (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.follows (
+  follower_id uuid not null references public.profiles(id) on delete cascade,
+  following_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower_id, following_id),
+  check (follower_id <> following_id)
+);
+
 create index if not exists posts_created_at_idx on public.posts(created_at desc);
 create index if not exists posts_author_id_idx on public.posts(author_id);
 create index if not exists comments_post_id_idx on public.comments(post_id, created_at);
@@ -81,6 +89,12 @@ alter table public.comments enable row level security;
 alter table public.reactions enable row level security;
 alter table public.notifications enable row level security;
 alter table public.coin_wallets enable row level security;
+alter table public.follows enable row level security;
+
+drop policy if exists "Follows are publicly readable" on public.follows;
+create policy "Follows are publicly readable" on public.follows for select using (true);
+drop policy if exists "Users manage their follows" on public.follows;
+create policy "Users manage their follows" on public.follows for all using (auth.uid() = follower_id) with check (auth.uid() = follower_id);
 
 drop policy if exists "Public profiles are readable" on public.profiles;
 create policy "Public profiles are readable" on public.profiles for select using (true);
