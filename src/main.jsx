@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import { supabase } from './lib/supabase'
+import VeilHome from './home/VeilHome'
 import './styles.css'
 import './glass-overrides.css'
 
@@ -116,6 +117,8 @@ function App() {
   const [submitted, setSubmitted] = useState(false)
   const [authMode, setAuthMode] = useState(null)
   const [legalMode, setLegalMode] = useState(null)
+  const [session, setSession] = useState(null)
+  const [homeMode, setHomeMode] = useState(false)
 
   useEffect(() => {
     const revealObserver = new IntersectionObserver((entries) => {
@@ -131,11 +134,31 @@ function App() {
     return () => revealObserver.disconnect()
   }, [])
 
+  useEffect(() => {
+    if (!supabase) return undefined
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setSession(data.session)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+      if (nextSession) setHomeMode(true)
+    })
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
   const closeMenu = () => setMenuOpen(false)
   const submitWaitlist = (event) => {
     event.preventDefault()
     if (email.trim()) setSubmitted(true)
   }
+
+  const signOut = async () => {
+    await supabase?.auth.signOut()
+    setSession(null)
+    setHomeMode(false)
+  }
+
+  if (homeMode && session) return <VeilHome session={session} onSignOut={signOut} />
 
   return (
     <main id="top">
