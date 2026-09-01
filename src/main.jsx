@@ -17,6 +17,7 @@ import { supabase } from './lib/supabase'
 import VeilHome from './home/VeilHome'
 import './styles.css'
 import './glass-overrides.css'
+import './mature-ui.css'
 
 const feedTabs = ['Pour toi', 'Tendance', 'Récent']
 
@@ -243,3 +244,7 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>)
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+}

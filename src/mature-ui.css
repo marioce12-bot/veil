@@ -1,0 +1,30 @@
+/* Mature VEIL UI language: same structure and palette, quieter surfaces. */
+:root { --ui-border: rgba(255, 255, 255, .12); --ui-surface: rgba(255, 255, 255, .045); --ui-surface-strong: rgba(255, 255, 255, .075); }
+body { background: #0b0812; }
+body::before { opacity: .06; }
+.ambient, .hero-glow, .visual-orbit { opacity: .3; }
+.site-header { position: fixed !important; top: 0 !important; z-index: 50 !important; min-height: 72px; border-color: var(--ui-border); border-radius: 0; background: rgba(11, 8, 18, .94); box-shadow: 0 1px 0 rgba(255, 255, 255, .04); backdrop-filter: blur(14px); }
+.hero { padding-top: 140px; }
+.logo img, .home-logo img { filter: none; }
+h1, h2, h3, .home-greeting h1 { font-family: 'Manrope', sans-serif; letter-spacing: -.045em; font-weight: 700; }
+h1 em, h2 span, .community-heading span, .home-greeting h1 em { font-family: 'Manrope', sans-serif; font-style: normal; font-weight: 700; }
+.button, .button-primary, .publish-button { border-radius: 6px; box-shadow: none; background: #855bd5; transition: background .2s ease, border-color .2s ease; }
+.button:hover, .publish-button:hover { transform: none; background: #966fe2; }
+.button-primary { border: 1px solid rgba(212, 184, 255, .2); }
+.glass-card, .glass-panel, .feed-demo, .community-card { border-color: var(--ui-border); border-radius: 10px; background: var(--ui-surface); box-shadow: none; backdrop-filter: blur(12px); }
+.community-card { min-height: 192px; }
+.waitlist { border-color: var(--ui-border); border-radius: 12px; background: #171122; box-shadow: none; backdrop-filter: none; }
+.waitlist::after { opacity: .12; }
+.auth-modal, .legal-modal { border-color: var(--ui-border); border-radius: 14px; background: #171122; box-shadow: 0 22px 70px rgba(0, 0, 0, .48); }
+.auth-symbol { box-shadow: none; }
+.privacy-banner { background: rgba(155, 120, 255, .08); }
+.home-header { position: fixed; top: 0; right: 0; left: 0; height: 68px; background: rgba(11, 8, 18, .96); box-shadow: 0 1px 0 rgba(255, 255, 255, .09); }
+.home-header-inner { height: 68px; }
+.home-layout { padding-top: 100px; }
+.home-search, .composer, .home-post, .trends-card, .veil-pick { border-color: var(--ui-border); background: var(--ui-surface); box-shadow: none; }
+.home-post { border-radius: 10px; }
+.composer textarea { font-size: 14px; }
+.composer-footer, .post-footer { border-color: rgba(255, 255, 255, .09); }
+.home-sidebar nav button.active, .home-sidebar nav button:hover { background: rgba(155, 120, 255, .1); }
+.mobile-bottom-nav { background: rgba(11, 8, 18, .98); backdrop-filter: blur(14px); }
+@media (max-width: 720px) { .home-header, .home-header-inner { height: 62px; }.home-layout { padding-top: 88px; } }
